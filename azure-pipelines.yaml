@@ -97,7 +97,7 @@ stages:
               kubernetesCluster: '$(aksClusterName)'
               namespace: 'default'
               manifests: |
-                $(Pipeline.Workspace)/k8s/deployment.yaml
-                $(Pipeline.Workspace)/k8s/service.yaml
+                $(Pipeline.Workspace)/k8s/Deployment.yaml
+                $(Pipeline.Workspace)/k8s/Service.yaml
               containers: |
                 $(containerRegistry)/$(imageRepository):$(imageTag)
