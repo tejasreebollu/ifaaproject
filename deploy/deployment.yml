@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-agent
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: fraud-agent
+
+  template:
+    metadata:
+      labels:
+        app: fraud-agent
+
+    spec:
+      containers:
+      - name: fraud-agent
+
+        image: docker-hubname/ifaa-fraud-agent:latest
+
+        ports:
+        - containerPort: 8000
+
+        env:
+        - name: POSTGRES_HOST
+          value: postgres
+
+        - name: POSTGRES_PORT
+          value: "5432"
+
+        - name: POSTGRES_DB
+          value: frauddb
+
+        - name: POSTGRES_USER
+          value: postgres
+
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fraud-secret
+              key: POSTGRES_PASSWORD

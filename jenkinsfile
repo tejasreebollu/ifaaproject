@@ -1,0 +1,25 @@
+node {
+    stage('Preparation') { // for display purposes
+        // Get some code from a GitHub repository
+         git(
+            branch: 'main',
+            credentialsId: 'ifaa',
+            url: 'https://github.com/aegletek/ifaa.git'
+            )
+    }
+    stage('Build') {
+        sh 'docker compose up -d'
+    }
+    stage('images') {
+        sh 'docker images'
+    }
+    stage('Tag Image') {
+        sh 'docker tag insurancefraud-fraud-agent:latest yashuraj/insurancefraud-fraud-agent:latest'
+    }
+    stage('push') {
+        sh 'docker push yashuraj/insurancefraud-fraud-agent:latest'
+    }
+    stage('deploy') {
+       sh 'kubectl apply -f deployment.yml'
+    }
+}  

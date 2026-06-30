@@ -1,0 +1,97 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  acrConnection: 'acr-ifaa-connection'
+  azureSubscription: 'azure-ifaa-connection'
+  imageRepository: 'ifaa'
+  containerRegistry: 'ifaaacr.azurecr.io'
+  aksResourceGroup: 'rg-ifaa-prod'
+  aksClusterName: 'aks-ifaa-prod'
+  imageTag: '$(Build.BuildId)'
+
+stages:
+
+- stage: Build
+  displayName: 'Build & Push to ACR'
+  jobs:
+  - job: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+
+    - task: Docker@2
+      displayName: 'Build and Push Docker Image'
+      inputs:
+        command: buildAndPush
+        repository: '$(imageRepository)'
+        dockerfile: '**/Dockerfile'
+        containerRegistry: '$(acrConnection)'
+        tags: |
+          $(imageTag)
+          latest
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish K8s Manifests'
+      inputs:
+        targetPath: '$(Pipeline.Workspace)/s/k8s'
+        artifact: 'k8s-manifests'
+
+- stage: Deploy
+  displayName: 'Deploy to AKS'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: 'k8s-manifests'
+              path: '$(Pipeline.Workspace)/k8s'
+
+          - task: KubernetesManifest@1
+            displayName: 'Apply Secrets'
+            inputs:
+              action: 'deploy'
+              connectionType: 'azureResourceManager'
+              azureSubscriptionConnection: '$(azureSubscription)'
+              azureResourceGroup: '$(aksResourceGroup)'
+              kubernetesCluster: '$(aksClusterName)'
+              namespace: 'default'
+              manifests: |
+                $(Pipeline.Workspace)/k8s/postgres-secret.yaml
+
+          - task: KubernetesManifest@1
+            displayName: 'Deploy Postgres'
+            inputs:
+              action: 'deploy'
+              connectionType: 'azureResourceManager'
+              azureSubscriptionConnection: '$(azureSubscription)'
+              azureResourceGroup: '$(aksResourceGroup)'
+              kubernetesCluster: '$(aksClusterName)'
+              namespace: 'default'
+              manifests: |
+                $(Pipeline.Workspace)/k8s/postgres.yaml
+
+          - task: KubernetesManifest@1
+            displayName: 'Deploy App'
+            inputs:
+              action: 'deploy'
+              connectionType: 'azureResourceManager'
+              azureSubscriptionConnection: '$(azureSubscription)'
+              azureResourceGroup: '$(aksResourceGroup)'
+              kubernetesCluster: '$(aksClusterName)'
+              namespace: 'default'
+              manifests: |
+                $(Pipeline.Workspace)/k8s/deployment.yaml
+                $(Pipeline.Workspace)/k8s/service.yaml
+              containers: '$(containerRegistry)/$(imageRepository):$(imageTag)'
