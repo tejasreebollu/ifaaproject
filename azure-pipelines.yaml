@@ -6,10 +6,10 @@ trigger:
 variables:
   acrConnection: 'acr-ifaa-connection'
   azureSubscription: 'azure-ifaa-connection'
-  imageRepository: 'ifaa'
-  containerRegistry: 'ifaaacr.azurecr.io'
-  aksResourceGroup: 'rg-ifaa-prod'
-  aksClusterName: 'aks-ifaa-prod'
+  imageRepository: 'ifaaproject'
+  containerRegistry: 'ifaapjt.azurecr.io'
+  aksResourceGroup: 'tejuifaa-rg'
+  aksClusterName: 'teju1faa-aks'
   imageTag: '$(Build.BuildId)'
 
 stages:
